@@ -67,6 +67,16 @@ BREAKING CHANGE: /auth/v1/* endpoints removed. Use /auth/v2/* instead.
 Refs: #123, #456
 ```
 
+## Log File Reference
+
+When asked to "check logs" or "look at logs", always refer to:
+
+```
+~/Duplo/EarthworksData/SVR_LOG*.txt
+```
+
+**Important**: Log entry timestamps have a known offset from system time. The exact offset is TBD — update this file once determined.
+
 ## Git Tool Preferences
 
 **NEVER use GitKraken MCP tools** (any tool starting with `mcp_gitkraken_`) - always use standard git commands via terminal instead.
