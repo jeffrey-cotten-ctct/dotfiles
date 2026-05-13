@@ -1,3 +1,6 @@
+---
+applyTo: "**"
+---
 # Personal Git Workflow Rules
 
 ## Commit Message Format (Conventional Commits)
@@ -11,6 +14,10 @@ TICKET-XXX: type(scope): description
 
 [optional footer(s)]
 ```
+
+### Finding the Ticket Number:
+- The Jira ticket number can be found in the current git branch name (e.g. `PPL-123-some-description` → ticket is `PPL-123`)
+- Run `git branch --show-current` to get the branch name if not already known
 
 ### Required Elements:
 1. **Ticket number with colon**: `TICKET-XXX:` or `PROJ-123:` 
@@ -67,6 +74,29 @@ BREAKING CHANGE: /auth/v1/* endpoints removed. Use /auth/v2/* instead.
 Refs: #123, #456
 ```
 
+## Pull Request Description Template
+
+When asked to generate a description for a PR, use the following template:
+
+```
+### Description
+
+### Merge Checklist
+- [ ] Automated tests run & showing no new failures
+- [ ] Manual testing complete to the satisfaction of the team
+- [ ] Any introduced issues that would block a release have been resolved
+- [ ] Any identified regressions have been resolved
+
+Refer to the [Tenzing Merge Process](https://ctctjv.atlassian.net/wiki/spaces/ctcteng/pages/90407328/Branching+and+Merging+Process) or talk to your team's Tenzing champion for more information
+
+### Supporting Info
+Insert links to information supporting this pull request
+```
+
+Always produce the output **twice**:
+1. First, rendered normally (so it reads well in the chat).
+2. Then, inside a fenced code block (` ```markdown `) containing the raw markdown — so it can be pasted directly into the GitHub/GitLab web portal.
+
 ## Log File Reference
 
 When asked to "check logs" or "look at logs", always refer to:
@@ -75,7 +105,17 @@ When asked to "check logs" or "look at logs", always refer to:
 ~/Duplo/EarthworksData/SVR_LOG*.txt
 ```
 
-**Important**: Log entry timestamps have a known offset from system time. The exact offset is TBD — update this file once determined.
+**Important**: Log entry timestamps are in UTC. Local system time is NZST (UTC+12). To convert: `local time = log time + 12 hours`.
+
+**Important**: The `Software Date` field in logs does **not** update for debug/local builds — ignore it when verifying which binary produced a given log. Use the binary file timestamp (`ls -lt .../Duplo`) instead.
+
+## Committing
+
+**ALWAYS show the proposed commit message and ask for confirmation before running `git commit`.**
+
+## Build Preferences
+
+**NEVER run builds** — do not invoke build scripts (`build.sh`, `ctct_docker_runner`, etc.) on the user's behalf. Always let the user build themselves.
 
 ## Git Tool Preferences
 
