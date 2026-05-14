@@ -4,6 +4,49 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SYMLINK="$SCRIPT_DIR/ctct_products"
 
+BLUE_BG=$'\e[44m'
+WHITE_FG=$'\e[97m'
+RESET=$'\e[0m'
+
+# Display a numbered menu centered on screen with a blue background.
+# Sets REPLY to the text of the selected option.
+# Usage: styled_select "Title" "option1" "option2" ...
+styled_select() {
+    local title="$1"
+    shift
+    local -a options=("$@")
+    local term_width
+    term_width=$(tput cols 2>/dev/null || echo 80)
+
+    local max_len=${#title}
+    for i in "${!options[@]}"; do
+        local entry="  $((i+1))) ${options[$i]}"
+        (( ${#entry} > max_len )) && max_len=${#entry}
+    done
+
+    local box_width=$(( max_len + 4 ))
+    local left_pad=$(( (term_width - box_width) / 2 ))
+    (( left_pad < 0 )) && left_pad=0
+    local pad
+    pad=$(printf '%*s' "$left_pad" '')
+
+    while true; do
+        echo ""
+        printf "%s${BLUE_BG}${WHITE_FG}  %-*s  ${RESET}\n" "$pad" "$max_len" "$title"
+        for i in "${!options[@]}"; do
+            printf "%s${BLUE_BG}${WHITE_FG}  %-*s  ${RESET}\n" "$pad" "$max_len" "  $((i+1))) ${options[$i]}"
+        done
+        echo ""
+
+        read -rp "${pad}Enter choice [1-${#options[@]}]: " choice
+        if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#options[@]} )); then
+            REPLY="${options[$((choice-1))]}"
+            return 0
+        fi
+        echo "Invalid selection. Please try again."
+    done
+}
+
 # Collect candidate directories (exclude the symlink itself)
 mapfile -t dirs < <(find "$SCRIPT_DIR" -maxdepth 1 -mindepth 1 -type d ! -name "ctct_products" -printf "%f\n" | sort)
 
@@ -14,39 +57,25 @@ fi
 
 current_target="$(readlink "$SYMLINK" 2>/dev/null || echo "(none)")"
 echo "Current symlink: ctct_products -> $current_target"
-echo ""
-echo "What would you like to do?"
-echo "  1) Switch to a directory"
-echo "  2) Create a btrfs clone of a directory"
-echo "  3) Delete a btrfs volume"
-echo ""
 
-read -rp "Enter choice [1-3]: " main_choice
+styled_select "What would you like to do?" \
+    "Switch btrfs symlink" \
+    "Create a btrfs clone of a directory" \
+    "Delete a btrfs volume" \
+    "Check real space usage" \
+    "List all snapshots"
+main_choice="$REPLY"
 
 case "$main_choice" in
-    1)
-        echo ""
-        echo "Select a directory to switch to:"
-        select dir in "${dirs[@]}"; do
-            if [[ -n "$dir" ]]; then
-                ln -sfn "$dir" "$SYMLINK"
-                echo "Updated: ctct_products -> $dir"
-                break
-            else
-                echo "Invalid selection. Please try again."
-            fi
-        done
+    "Switch btrfs symlink")
+        styled_select "Select a directory to switch to:" "${dirs[@]}"
+        dir="$REPLY"
+        ln -sfn "$dir" "$SYMLINK"
+        echo "Updated: ctct_products -> $dir"
         ;;
-    2)
-        echo ""
-        echo "Select a directory to clone:"
-        select src_dir in "${dirs[@]}"; do
-            if [[ -n "$src_dir" ]]; then
-                break
-            else
-                echo "Invalid selection. Please try again."
-            fi
-        done
+    "Create a btrfs clone of a directory")
+        styled_select "Select a directory to clone:" "${dirs[@]}"
+        src_dir="$REPLY"
 
         echo ""
         while true; do
@@ -80,16 +109,9 @@ case "$main_choice" in
             echo "Symlink unchanged: ctct_products -> $current_target"
         fi
         ;;
-    3)
-        echo ""
-        echo "Select a volume to delete:"
-        select del_dir in "${dirs[@]}"; do
-            if [[ -n "$del_dir" ]]; then
-                break
-            else
-                echo "Invalid selection. Please try again."
-            fi
-        done
+    "Delete a btrfs volume")
+        styled_select "Select a volume to delete:" "${dirs[@]}"
+        del_dir="$REPLY"
 
         echo ""
         read -rp "Are you sure you want to delete '$del_dir'? [y/N]: " confirm_choice
@@ -113,8 +135,16 @@ case "$main_choice" in
         btrfs subvolume delete "$SCRIPT_DIR/$del_dir"
         echo "Deleted: $del_dir"
         ;;
-    *)
-        echo "Invalid choice."
-        exit 1
+    "Check real space usage")
+        echo ""
+        echo "Btrfs filesystem usage for $SCRIPT_DIR:"
+        echo ""
+        btrfs filesystem usage "$SCRIPT_DIR"
+        ;;
+    "List all snapshots")
+        echo ""
+        echo "Btrfs subvolumes/snapshots under $SCRIPT_DIR:"
+        echo ""
+        btrfs subvolume list "$SCRIPT_DIR"
         ;;
 esac
