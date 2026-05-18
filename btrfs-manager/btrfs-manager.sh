@@ -72,6 +72,46 @@ case "$main_choice" in
         dir="$REPLY"
         ln -sfn "$dir" "$SYMLINK"
         echo "Updated: ctct_products -> $dir"
+
+        new_dir_path="$SCRIPT_DIR/$dir"
+
+        if git -C "$new_dir_path" rev-parse --is-inside-work-tree &>/dev/null; then
+            current_branch=$(git -C "$new_dir_path" rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+
+            if [[ -n "$current_branch" ]]; then
+                dir_ticket=""
+                [[ "$dir" =~ ([A-Z]+-[0-9]+) ]] && dir_ticket="${BASH_REMATCH[1]}"
+
+                branch_ticket=""
+                [[ "$current_branch" =~ ([A-Z]+-[0-9]+) ]] && branch_ticket="${BASH_REMATCH[1]}"
+
+                if [[ -n "$dir_ticket" && "$dir_ticket" == "$branch_ticket" ]]; then
+                    echo "Git branch: $current_branch"
+                elif [[ -n "$dir_ticket" && "$dir_ticket" != "$branch_ticket" ]]; then
+                    echo "Git branch '$current_branch' does not match directory ticket '$dir_ticket'."
+
+                    mapfile -t matching_branches < <(
+                        git -C "$new_dir_path" branch --all --format='%(refname:short)' \
+                        | grep -i "$dir_ticket" \
+                        | sed 's|^origin/||' \
+                        | sort -u
+                    )
+
+                    if [[ ${#matching_branches[@]} -eq 0 ]]; then
+                        echo "No git branches found matching '$dir_ticket'."
+                    elif [[ ${#matching_branches[@]} -eq 1 ]]; then
+                        echo ""
+                        read -rp "Checkout '${matching_branches[0]}'? [y/N]: " checkout_choice
+                        if [[ "$checkout_choice" =~ ^[Yy]$ ]]; then
+                            git -C "$new_dir_path" checkout "${matching_branches[0]}"
+                        fi
+                    else
+                        styled_select "Select a branch to checkout for '$dir_ticket':" "${matching_branches[@]}"
+                        git -C "$new_dir_path" checkout "$REPLY"
+                    fi
+                fi
+            fi
+        fi
         ;;
     "Create a btrfs clone of a directory")
         styled_select "Select a directory to clone:" "${dirs[@]}"
