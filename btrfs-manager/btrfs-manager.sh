@@ -47,6 +47,52 @@ styled_select() {
     done
 }
 
+# After switching the symlink to a directory, check if its git branch matches the
+# directory's ticket identifier and offer to checkout a matching branch if not.
+# Usage: maybe_checkout_git_branch <dir_name>
+maybe_checkout_git_branch() {
+    local dir="$1"
+    local new_dir_path="$SCRIPT_DIR/$dir"
+
+    if git -C "$new_dir_path" rev-parse --is-inside-work-tree &>/dev/null; then
+        current_branch=$(git -C "$new_dir_path" rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+
+        if [[ -n "$current_branch" ]]; then
+            dir_ticket=""
+            [[ "$dir" =~ ([A-Z]+-[0-9]+) ]] && dir_ticket="${BASH_REMATCH[1]}"
+
+            branch_ticket=""
+            [[ "$current_branch" =~ ([A-Z]+-[0-9]+) ]] && branch_ticket="${BASH_REMATCH[1]}"
+
+            if [[ -n "$dir_ticket" && "$dir_ticket" == "$branch_ticket" ]]; then
+                echo "Git branch: $current_branch"
+            elif [[ -n "$dir_ticket" && "$dir_ticket" != "$branch_ticket" ]]; then
+                echo "Git branch '$current_branch' does not match directory ticket '$dir_ticket'."
+
+                mapfile -t matching_branches < <(
+                    git -C "$new_dir_path" branch --all --format='%(refname:short)' \
+                    | grep -i "$dir_ticket" \
+                    | sed 's|^origin/||' \
+                    | sort -u
+                )
+
+                if [[ ${#matching_branches[@]} -eq 0 ]]; then
+                    echo "No git branches found matching '$dir_ticket'."
+                elif [[ ${#matching_branches[@]} -eq 1 ]]; then
+                    echo ""
+                    read -rp "Checkout '${matching_branches[0]}'? [y/N]: " checkout_choice
+                    if [[ "$checkout_choice" =~ ^[Yy]$ ]]; then
+                        git -C "$new_dir_path" checkout "${matching_branches[0]}"
+                    fi
+                else
+                    styled_select "Select a branch to checkout for '$dir_ticket':" "${matching_branches[@]}"
+                    git -C "$new_dir_path" checkout "$REPLY"
+                fi
+            fi
+        fi
+    fi
+}
+
 # Collect candidate directories (exclude the symlink itself)
 mapfile -t dirs < <(find "$SCRIPT_DIR" -maxdepth 1 -mindepth 1 -type d ! -name "ctct_products" -printf "%f\n" | sort)
 
@@ -73,45 +119,7 @@ case "$main_choice" in
         ln -sfn "$dir" "$SYMLINK"
         echo "Updated: ctct_products -> $dir"
 
-        new_dir_path="$SCRIPT_DIR/$dir"
-
-        if git -C "$new_dir_path" rev-parse --is-inside-work-tree &>/dev/null; then
-            current_branch=$(git -C "$new_dir_path" rev-parse --abbrev-ref HEAD 2>/dev/null || true)
-
-            if [[ -n "$current_branch" ]]; then
-                dir_ticket=""
-                [[ "$dir" =~ ([A-Z]+-[0-9]+) ]] && dir_ticket="${BASH_REMATCH[1]}"
-
-                branch_ticket=""
-                [[ "$current_branch" =~ ([A-Z]+-[0-9]+) ]] && branch_ticket="${BASH_REMATCH[1]}"
-
-                if [[ -n "$dir_ticket" && "$dir_ticket" == "$branch_ticket" ]]; then
-                    echo "Git branch: $current_branch"
-                elif [[ -n "$dir_ticket" && "$dir_ticket" != "$branch_ticket" ]]; then
-                    echo "Git branch '$current_branch' does not match directory ticket '$dir_ticket'."
-
-                    mapfile -t matching_branches < <(
-                        git -C "$new_dir_path" branch --all --format='%(refname:short)' \
-                        | grep -i "$dir_ticket" \
-                        | sed 's|^origin/||' \
-                        | sort -u
-                    )
-
-                    if [[ ${#matching_branches[@]} -eq 0 ]]; then
-                        echo "No git branches found matching '$dir_ticket'."
-                    elif [[ ${#matching_branches[@]} -eq 1 ]]; then
-                        echo ""
-                        read -rp "Checkout '${matching_branches[0]}'? [y/N]: " checkout_choice
-                        if [[ "$checkout_choice" =~ ^[Yy]$ ]]; then
-                            git -C "$new_dir_path" checkout "${matching_branches[0]}"
-                        fi
-                    else
-                        styled_select "Select a branch to checkout for '$dir_ticket':" "${matching_branches[@]}"
-                        git -C "$new_dir_path" checkout "$REPLY"
-                    fi
-                fi
-            fi
-        fi
+        maybe_checkout_git_branch "$dir"
         ;;
     "Create a btrfs clone of a directory")
         styled_select "Select a directory to clone:" "${dirs[@]}"
@@ -137,7 +145,7 @@ case "$main_choice" in
         done
 
         echo "Creating btrfs snapshot: $src_dir -> $clone_name ..."
-        btrfs subvolume snapshot "$SCRIPT_DIR/$src_dir" "$clone_path"
+        sudo btrfs subvolume snapshot "$SCRIPT_DIR/$src_dir" "$clone_path"
         echo "Clone created: $clone_name"
 
         echo ""
@@ -145,6 +153,7 @@ case "$main_choice" in
         if [[ "$switch_choice" =~ ^[Yy]$ ]]; then
             ln -sfn "$clone_name" "$SYMLINK"
             echo "Updated: ctct_products -> $clone_name"
+            maybe_checkout_git_branch "$clone_name"
         else
             echo "Symlink unchanged: ctct_products -> $current_target"
         fi
@@ -172,19 +181,19 @@ case "$main_choice" in
         fi
 
         echo "Deleting btrfs subvolume: $del_dir ..."
-        btrfs subvolume delete "$SCRIPT_DIR/$del_dir"
+        sudo btrfs subvolume delete "$SCRIPT_DIR/$del_dir"
         echo "Deleted: $del_dir"
         ;;
     "Check real space usage")
         echo ""
         echo "Btrfs filesystem usage for $SCRIPT_DIR:"
         echo ""
-        btrfs filesystem usage "$SCRIPT_DIR"
+        sudo btrfs filesystem usage "$SCRIPT_DIR"
         ;;
     "List all snapshots")
         echo ""
         echo "Btrfs subvolumes/snapshots under $SCRIPT_DIR:"
         echo ""
-        btrfs subvolume list "$SCRIPT_DIR"
+        sudo btrfs subvolume list "$SCRIPT_DIR"
         ;;
 esac
