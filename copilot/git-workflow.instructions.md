@@ -122,3 +122,7 @@ When presenting a proposed commit message, always place the **entire** message (
 ## Git Tool Preferences
 
 **NEVER use GitKraken MCP tools** (any tool starting with `mcp_gitkraken_`) - always use standard git commands via terminal instead.
+
+## Implementation Preferences
+
+Please use existing helpers/utilities in this repo; avoid custom implementations unless none exist.
