@@ -93,6 +93,49 @@ maybe_checkout_git_branch() {
     fi
 }
 
+to_human() {
+    local b=$1
+    if   (( b >= 1073741824 )); then awk "BEGIN {printf \"%.1f GiB\", $b/1073741824}"
+    elif (( b >= 1048576    )); then awk "BEGIN {printf \"%.1f MiB\", $b/1048576}"
+    elif (( b >= 1024       )); then awk "BEGIN {printf \"%.1f KiB\", $b/1024}"
+    else echo "${b} B"; fi
+}
+
+print_space_usage() {
+    local raw
+    raw=$(sudo btrfs filesystem usage -b "$SCRIPT_DIR" 2>/dev/null)
+
+    local total_b used_b free_b
+    total_b=$(echo "$raw" | awk '/Device size:/       { print $NF }')
+    used_b=$( echo "$raw" | awk '/^[[:space:]]+Used:/ { print $NF }')
+    free_b=$(  echo "$raw" | awk '/Free \(estimated\):/ { print $3 }')
+
+    local total_h used_h free_h pct
+    total_h=$(to_human "$total_b")
+    used_h=$( to_human "$used_b")
+    free_h=$(  to_human "$free_b")
+    pct=$(awk "BEGIN {printf \"%d\", ($used_b/$total_b)*100}")
+
+    local bar_width=40
+    local filled=$(( bar_width * pct / 100 ))
+    local empty=$(( bar_width - filled ))
+    local bar
+    bar=$(printf '%*s' "$filled" '' | tr ' ' '█')$(printf '%*s' "$empty" '' | tr ' ' '░')
+
+    echo "  Volume : $SCRIPT_DIR"
+    echo ""
+    printf "  Total  : %s\n"  "$total_h"
+    printf "  Used   : %s\n"  "$used_h"
+    printf "  Free   : %s\n"  "$free_h"
+    echo ""
+    printf "  [%s] %d%% used\n" "$bar" "$pct"
+    echo ""
+
+    if   (( pct >= 90 )); then echo "  ⚠️  WARNING: Volume is almost full! Consider resizing now."
+    elif (( pct >= 75 )); then echo "  ⚠️  Volume is getting full. Consider resizing soon."
+    fi
+}
+
 # Collect candidate directories (exclude the symlink itself)
 mapfile -t dirs < <(find "$SCRIPT_DIR" -maxdepth 1 -mindepth 1 -type d ! -name "ctct_products" -printf "%f\n" | sort)
 
@@ -180,48 +223,25 @@ case "$main_choice" in
             rm -f "$SYMLINK"
         fi
 
+        echo ""
+        echo "--- Space usage before deletion ---"
+        print_space_usage
+
         echo "Deleting btrfs subvolume: $del_dir ..."
         sudo btrfs subvolume delete "$SCRIPT_DIR/$del_dir"
         echo "Deleted: $del_dir"
+
+        echo "Syncing filesystem to flush space accounting ..."
+        sudo btrfs filesystem sync "$SCRIPT_DIR" &>/dev/null
+
+        echo ""
+        echo "--- Space usage after deletion ---"
+        echo "  Note: shared (CoW) extents with other subvolumes are not freed."
+        print_space_usage
         ;;
     "Check real space usage")
         echo ""
-        raw=$(sudo btrfs filesystem usage -b "$SCRIPT_DIR" 2>/dev/null)
-
-        total_b=$(echo "$raw" | awk '/Device size:/       { print $NF }')
-        used_b=$( echo "$raw" | awk '/^[[:space:]]+Used:/ { print $NF }')
-        free_b=$(  echo "$raw" | awk '/Free \(estimated\):/ { print $3 }')
-
-        to_human() {
-            local b=$1
-            if   (( b >= 1073741824 )); then awk "BEGIN {printf \"%.1f GiB\", $b/1073741824}"
-            elif (( b >= 1048576    )); then awk "BEGIN {printf \"%.1f MiB\", $b/1048576}"
-            elif (( b >= 1024       )); then awk "BEGIN {printf \"%.1f KiB\", $b/1024}"
-            else echo "${b} B"; fi
-        }
-
-        total_h=$(to_human "$total_b")
-        used_h=$( to_human "$used_b")
-        free_h=$(  to_human "$free_b")
-        pct=$(awk "BEGIN {printf \"%d\", ($used_b/$total_b)*100}")
-
-        bar_width=40
-        filled=$(( bar_width * pct / 100 ))
-        empty=$(( bar_width - filled ))
-        bar=$(printf '%*s' "$filled" '' | tr ' ' '█')$(printf '%*s' "$empty" '' | tr ' ' '░')
-
-        echo "  Volume : $SCRIPT_DIR"
-        echo ""
-        printf "  Total  : %s\n"  "$total_h"
-        printf "  Used   : %s\n"  "$used_h"
-        printf "  Free   : %s\n"  "$free_h"
-        echo ""
-        printf "  [%s] %d%% used\n" "$bar" "$pct"
-        echo ""
-
-        if   (( pct >= 90 )); then echo "  ⚠️  WARNING: Volume is almost full! Consider resizing now."
-        elif (( pct >= 75 )); then echo "  ⚠️  Volume is getting full. Consider resizing soon."
-        fi
+        print_space_usage
         ;;
     "List all snapshots")
         echo ""
