@@ -18,6 +18,7 @@ Run the following commands once on a new machine:
 
 ```bash
 ln -s ~/source/dotfiles/copilot/git-workflow.instructions.md ~/.config/Code/User/prompts/git-workflow.instructions.md
+ln -s ~/source/dotfiles/copilot/cpp.instructions.md ~/.config/Code/User/prompts/cpp.instructions.md
 ```
 
 ### How it works
@@ -37,3 +38,4 @@ The `applyTo: "**"` pattern tells VS Code Copilot to inject the instructions int
 | File | Purpose |
 |------|---------|
 | `git-workflow.instructions.md` | Commit message format, PR template, log file conventions, and tool preferences |
+| `cpp.instructions.md` | C++ language standard (C++17) applied to C/C++ source and header files |
