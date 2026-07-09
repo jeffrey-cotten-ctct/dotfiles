@@ -74,7 +74,13 @@ BREAKING CHANGE: /auth/v1/* endpoints removed. Use /auth/v2/* instead.
 Refs: #123, #456
 ```
 
+## Pull Request Creation
+
+When asked to create a PR (via `gh pr create` or similar), **always create it in Draft mode** by passing the `--draft` flag.
+
 ## Pull Request Description Template
+
+When asked to draft/generate a PR (or a description for a PR), first ask me: "Would you like me to review your current git changes since you branched for bugs and code quality?" Only perform that review if I confirm.
 
 When asked to generate a description for a PR, use the following template:
 
@@ -114,6 +120,8 @@ When asked to "check logs" or "look at logs", always refer to:
 **ALWAYS show the proposed commit message and ask for confirmation before running `git commit`.**
 
 When presenting a proposed commit message, always place the **entire** message (subject line, blank line, and body) inside a single fenced code block — never split the subject into one code block and the body into regular prose.
+
+**NEVER include a `Co-authored-by` trailer** (e.g. `Co-authored-by: Copilot <...>`) in any commit message.
 
 ## Build Preferences
 
