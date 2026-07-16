@@ -103,7 +103,19 @@ to_human() {
 
 print_space_usage() {
     local raw
-    raw=$(sudo btrfs filesystem usage -b "$SCRIPT_DIR" 2>/dev/null)
+    if ! raw=$(sudo -n btrfs filesystem usage -b "$SCRIPT_DIR" 2>/dev/null); then
+        echo "  Sudo credentials are required to read btrfs space usage."
+        if ! sudo -v; then
+            echo "  Unable to acquire sudo credentials."
+            echo ""
+            return 0
+        fi
+        if ! raw=$(sudo btrfs filesystem usage -b "$SCRIPT_DIR" 2>/dev/null); then
+            echo "  Unable to read btrfs space usage."
+            echo ""
+            return 0
+        fi
+    fi
 
     local total_b used_b free_b
     total_b=$(echo "$raw" | awk '/Device size:/       { print $NF }')
@@ -136,6 +148,54 @@ print_space_usage() {
     fi
 }
 
+print_shared_space_savings() {
+    local raw
+    if ! raw=$(btrfs filesystem du -s --raw "$SCRIPT_DIR" 2>/dev/null); then
+        if ! raw=$(sudo -n btrfs filesystem du -s --raw "$SCRIPT_DIR" 2>/dev/null); then
+            echo "  Sudo credentials are required to read btrfs shared-space savings."
+            if ! sudo -v; then
+                echo "  Unable to acquire sudo credentials."
+                echo ""
+                return 0
+            fi
+            if ! raw=$(sudo btrfs filesystem du -s --raw "$SCRIPT_DIR" 2>/dev/null); then
+                echo "  Unable to read btrfs shared-space savings."
+                echo ""
+                return 0
+            fi
+        fi
+    fi
+
+    local total_b exclusive_b set_shared_b
+    read -r total_b exclusive_b set_shared_b < <(echo "$raw" | awk 'NR==2 {print $1, $2, $3}')
+
+    if [[ -z "${total_b:-}" || -z "${exclusive_b:-}" || -z "${set_shared_b:-}" ]]; then
+        echo "  Unexpected output from 'btrfs filesystem du'."
+        echo ""
+        return 0
+    fi
+
+    local savings_b=$(( total_b - exclusive_b ))
+    local total_h exclusive_h set_shared_h savings_h
+    total_h=$(to_human "$total_b")
+    exclusive_h=$(to_human "$exclusive_b")
+    set_shared_h=$(to_human "$set_shared_b")
+    savings_h=$(to_human "$savings_b")
+
+    local savings_pct=0
+    if (( total_b > 0 )); then
+        savings_pct=$(awk "BEGIN {printf \"%d\", ($savings_b/$total_b)*100}")
+    fi
+
+    echo "  Path      : $SCRIPT_DIR"
+    echo ""
+    printf "  Total     : %s (%s bytes)\n" "$total_h" "$total_b"
+    printf "  Exclusive : %s (%s bytes)\n" "$exclusive_h" "$exclusive_b"
+    printf "  Set shared: %s (%s bytes)\n" "$set_shared_h" "$set_shared_b"
+    printf "  Savings   : %s (%s bytes, %d%%)\n" "$savings_h" "$savings_b" "$savings_pct"
+    echo ""
+}
+
 # Collect candidate directories (exclude the symlink itself)
 mapfile -t dirs < <(find "$SCRIPT_DIR" -maxdepth 1 -mindepth 1 -type d ! -name "ctct_products" -printf "%f\n" | sort)
 
@@ -152,6 +212,7 @@ styled_select "What would you like to do?" \
     "Create a btrfs clone of a directory" \
     "Delete a btrfs volume" \
     "Check real space usage" \
+    "Check btrfs shared-space savings" \
     "List all snapshots"
 main_choice="$REPLY"
 
@@ -231,17 +292,20 @@ case "$main_choice" in
         sudo btrfs subvolume delete "$SCRIPT_DIR/$del_dir"
         echo "Deleted: $del_dir"
 
-        echo "Syncing filesystem to flush space accounting ..."
-        sudo btrfs filesystem sync "$SCRIPT_DIR" &>/dev/null
+        echo "Btrfs reclaim sync wait skipped."
 
         echo ""
-        echo "--- Space usage after deletion ---"
-        echo "  Note: shared (CoW) extents with other subvolumes are not freed."
-        print_space_usage
+        echo "Post-delete space usage check skipped."
         ;;
     "Check real space usage")
         echo ""
         print_space_usage
+        ;;
+    "Check btrfs shared-space savings")
+        echo ""
+        echo "  Calculating shared-space savings can take a moment. Please be patient..."
+        echo ""
+        print_shared_space_savings
         ;;
     "List all snapshots")
         echo ""

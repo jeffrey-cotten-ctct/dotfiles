@@ -26,11 +26,21 @@ Creates a btrfs snapshot of a selected directory under a new name. Optionally sw
 
 ### Delete a btrfs volume
 
-Deletes a btrfs subvolume. Requires two confirmation prompts to prevent accidental deletion. If the `ctct_products` symlink points to the deleted volume, the symlink is also removed.
+Deletes a btrfs subvolume. Requires two confirmation prompts to prevent accidental deletion. If the `ctct_products` symlink points to the deleted volume, the symlink is also removed. The script shows space usage before deletion, then deletes the subvolume without waiting for a reclaim sync or running a post-delete usage check.
 
 ### Check real space usage
 
-Runs `btrfs filesystem usage` on the script directory to show actual disk usage, accounting for btrfs deduplication and shared extents.
+Runs `btrfs filesystem usage -b` on the script directory to show total, used, and free space with a usage bar. The script first tries non-interactive sudo and then prompts for sudo credentials only if needed.
+
+### Check btrfs shared-space savings
+
+Runs `btrfs filesystem du -s --raw` on the script directory to show:
+- Total bytes
+- Exclusive bytes
+- Set-shared bytes
+- Savings from shared extents (bytes and percent)
+
+This helps quantify the CoW space savings from snapshots/clones. Like the real space usage command, it falls back to prompting for sudo credentials when required.
 
 ### List all snapshots
 
@@ -41,3 +51,4 @@ Runs `btrfs subvolume list` on the script directory to list all subvolumes and s
 - Linux with btrfs filesystem
 - `btrfs-progs` installed (`btrfs` CLI available)
 - Bash 4.0+
+- Sudo access for operations that require elevated btrfs metadata reads or subvolume changes
