@@ -47,6 +47,9 @@ TICKET-XXX: type(scope): description
 - No period (.) at the end
 - Describe what the commit does, not what you did
 
+### Review Spelling:
+- When a word has inconsistent spellings in a review, prefer the New Zealand spelling.
+
 ### Body (optional):
 - Separated from description by blank line
 - Can be multiple paragraphs
