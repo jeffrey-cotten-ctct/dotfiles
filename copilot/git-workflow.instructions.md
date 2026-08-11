@@ -50,10 +50,31 @@ TICKET-XXX: type(scope): description
 ### Review Spelling:
 - When a word has inconsistent spellings in a review, prefer the New Zealand spelling.
 
+## New Zealand Spelling Workflow
+
+When editing prose in docs, markdown, comments, PR descriptions, review summaries, and chat responses:
+
+- Default to New Zealand spelling.
+- After content edits, run a short NZ spelling normalisation pass.
+- Keep technical identifiers, code symbols, API names, branch names, and quoted text unchanged.
+- Limit spelling passes to files changed in the current task unless I ask for a full-repo pass.
+- Apply spelling-only edits during this pass (do not rewrite tone/wording unless asked).
+
+Common variants to prefer in NZ style include:
+
+- `behaviour` over `behavior`
+- `organisation` over `organization`
+- `optimise` over `optimize`
+- `customise` over `customize`
+- `initialise` over `initialize`
+- `analyse` over `analyze`
+
+If unsure whether a term is an identifier or prose, treat it as an identifier and do not change it.
+
 ### Body (optional):
 - Separated from description by blank line
 - Can be multiple paragraphs
-- Explain the motivation and contrast with previous behavior
+- Explain the motivation and contrast with previous behaviour
 
 ### Footer (optional):
 - One or more footers separated by blank lines
@@ -106,6 +127,69 @@ Always produce the output **twice**:
 1. First, rendered normally (so it reads well in the chat).
 2. Then, inside a fenced code block (` ```markdown `) containing the raw markdown — so it can be pasted directly into the GitHub/GitLab web portal.
 
+## Peer Review Requirements for Unit Tests
+
+When requesting a peer review, any unit tests that have been created or modified must include the following documentation:
+
+### GIVEN WHEN THEN Sections
+Above each test function, include a comment block describing the test structure:
+```
+// GIVEN: [initial state/preconditions]
+// WHEN: [action being tested]
+// THEN: [expected outcome/assertion]
+```
+
+### @test_purpose Tag
+Each test must include a `@test_purpose` tag that briefly describes what the test validates. This tag should be placed in the test comment block or docstring, beneath the THEN line.
+
+Example (for C++ tests):
+```cpp
+// GIVEN: A new DeviceManager instance
+// WHEN: Instantiated without parameters
+// THEN: All properties should have expected default values
+// @test_purpose Verify that DeviceManager initialises with correct default values
+TEST(DeviceManagerTest, InitialisesWithDefaults) {
+  // test implementation
+}
+```
+
+Example (for other languages):
+```python
+# GIVEN: A valid but soon-to-expire token (30 seconds to expiry)
+# WHEN: The refresh endpoint is called
+# THEN: A new valid token should be returned
+# @test_purpose Verify authentication token refresh succeeds within expiry window
+def test_token_refresh_within_window():
+    # test implementation
+```
+
+### Recording Test Purposes
+
+When creating or modifying unit tests as part of a peer review:
+
+1. **For existing test files**: Check if there is already a corresponding `.md` documentation file (e.g., `TestDeviceManager-purposes.md` for `TestDeviceManager.cpp`). If it exists, add the test purpose to that existing document.
+
+2. **For new test files**: 
+   - You will be prompted to confirm the test file name
+   - Copilot will suggest an appropriate location and filename for the documentation file (typically in a `Documentation` folder or alongside the test file)
+   - The documentation should follow the same format as existing requirement/test purpose registries (see example below)
+
+### Test Purpose Registry Format
+
+Documentation files should follow this standardised table format with ID-based tracking:
+
+```markdown
+# Test Purposes for [Component/Module Name]
+
+| ID | Test Name | Requirement (if applicable) | Description |
+| --- | --- | --- | --- |
+| TP.device.init.defaults | `InitialisesWithDefaults` | REQ.device.lifecycle | Verify that DeviceManager initialises with correct default values |
+| TP.auth.token.refresh.valid | `test_token_refresh_within_window` | REQ.auth.token.expiry | Verify authentication token refresh succeeds within expiry window |
+| TP.auth.login.attempt.tracking | `test_failed_login_increments_attempt_counter` | REQ.auth.security | Verify failed login attempts are tracked correctly |
+```
+
+The ID format follows the pattern: `TP.<module>.<component>.<scenario>` for consistency and traceability.
+
 ## Log File Reference
 
 When asked to "check logs" or "look at logs", always refer to:
@@ -137,3 +221,8 @@ When presenting a proposed commit message, always place the **entire** message (
 ## Implementation Preferences
 
 Please use existing helpers/utilities in this repo; avoid custom implementations unless none exist.
+
+## Naming Conventions
+
+- For new classes, do **not** use a `C` prefix (for example, prefer `DeviceManager` over `CDeviceManager`).
+- Follow the existing project naming style for class names unless explicitly directed otherwise.
