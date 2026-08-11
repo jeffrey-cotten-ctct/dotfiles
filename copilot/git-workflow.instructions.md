@@ -163,6 +163,9 @@ def test_token_refresh_within_window():
     # test implementation
 ```
 
+### Mosaic Message Receivers
+When performing a peer review, if the changes involve Mosaic message receivers, note that the message and its payload cannot be null. Do not suggest gating null checks for either one.
+
 ### Recording Test Purposes
 
 When creating or modifying unit tests as part of a peer review:
