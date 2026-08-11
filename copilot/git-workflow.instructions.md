@@ -163,6 +163,9 @@ def test_token_refresh_within_window():
     # test implementation
 ```
 
+### Include Path Review
+When performing a peer review, examine all `#include` directives in changed files. If relative paths are used (e.g., `#include "../include/module.h"`), inform the user to avoid relative paths. Recommend using absolute paths from the project root or proper include directory configuration instead.
+
 ### Mosaic Message Receivers
 When performing a peer review, if the changes involve Mosaic message receivers, note that the message and its payload cannot be null. Do not suggest gating null checks for either one.
 
