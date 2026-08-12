@@ -1,0 +1,45 @@
+ProvidersMenu {
+  subsystems {
+    provider_urn: "urn:providernamespace:machine-controls"
+    provider_type: eMachinePositioning
+    provider_display_name: "Machine Controls"
+    menu_items {
+      display_text: "Machine Overview"
+      url: "https://www.google.com"
+    }
+    menu_items {
+      display_text: "Autos Setup"
+      url: "https://www.google.com"
+    }
+    menu_items {
+      display_text: "Autos Optimisation"
+      url: "https://www.google.com"
+    }
+    menu_items {
+      display_text: "Blade Wear"
+      url: "https://www.google.com"
+    }
+    menu_items {
+      display_text: "Steering Control"
+      url: "https://www.google.com"
+    }
+    menu_items {
+      display_text: "Pass Match Adjustment"
+      url: "https://www.google.com"
+    }
+  }
+  subsystems {
+    provider_urn: "urn:providernamespace:positioning"
+    provider_type: eSiteRelative
+    provider_display_name: "Positioning"
+    menu_items {
+      display_text: "GNSS Overview"
+      url: "https://www.google.com"
+    }
+    menu_items {
+      display_text: "GNSS Correction Source"
+      url: "https://www.google.com"
+    }
+  }
+  Age: 0
+}

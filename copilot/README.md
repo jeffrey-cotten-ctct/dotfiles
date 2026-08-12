@@ -1,15 +1,21 @@
 # Copilot Dotfiles
 
-Personal GitHub Copilot instruction files that apply automatically to every VS Code Copilot session.
+Personal GitHub Copilot instruction files that apply automatically to every VS Code Copilot session and every GitHub Copilot CLI session.
 
 ## Setup
 
-Instructions files must be symlinked into VS Code's user prompts folder so they are picked up automatically.
+Instructions files must be symlinked into each tool's instructions folder so they are picked up automatically.
 
-### User prompts folder
+### VS Code user prompts folder
 
 ```
 ~/.config/Code/User/prompts/
+```
+
+### GitHub Copilot CLI instructions folder
+
+```
+~/.copilot/instructions/
 ```
 
 ### Create symlinks
@@ -17,8 +23,14 @@ Instructions files must be symlinked into VS Code's user prompts folder so they 
 Run the following commands once on a new machine:
 
 ```bash
+# VS Code
 ln -s ~/source/dotfiles/copilot/git-workflow.instructions.md ~/.config/Code/User/prompts/git-workflow.instructions.md
 ln -s ~/source/dotfiles/copilot/cpp.instructions.md ~/.config/Code/User/prompts/cpp.instructions.md
+
+# GitHub Copilot CLI
+mkdir -p ~/.copilot/instructions
+ln -s ~/source/dotfiles/copilot/git-workflow.instructions.md ~/.copilot/instructions/git-workflow.instructions.md
+ln -s ~/source/dotfiles/copilot/cpp.instructions.md ~/.copilot/instructions/cpp.instructions.md
 ```
 
 ### How it works

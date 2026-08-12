@@ -196,6 +196,11 @@ Documentation files should follow this standardised table format with ID-based t
 
 The ID format follows the pattern: `TP.<module>.<component>.<scenario>` for consistency and traceability.
 
+### Requirement Mapping Rules
+
+- **Each test purpose must map to at most one requirement** (one-to-one relationship). This keeps test purposes focused and prevents scope creep.
+- **Requirements, however, can map to multiple parent/child requirements** (many-to-many relationship). This allows requirements to be composed hierarchically or reference multiple related concerns without violating the one-to-one test purpose rule.
+
 ## Log File Reference
 
 When asked to "check logs" or "look at logs", always refer to:
