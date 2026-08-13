@@ -1,0 +1,72 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "inputs": [
+    {
+      "id": "GtestFilter",
+      "type": "promptString",
+      "description": "Gtest filter - use an asterisk to run all tests"
+    }
+  ],
+  "configurations": [
+    {
+      "name": "Generate NoSync API for ConnectedCloudClient",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/components/ConnectedCloudClient/scripts/ApiGenerator.py",
+      "args": [
+        "${workspaceFolder}/../api/connected_cloud/nosync.yaml",
+        "${workspaceFolder}/components/ConnectedCloudClient/generated/src/generated",
+        "ns",
+        "--verbose"
+      ],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/../python"
+      }
+    },
+    {
+      "name": "Generate Connected Cloud Client Provisioning API",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/components/ConnectedCloudClient/scripts/ApiGenerator.py",
+      "args": [
+        "${workspaceFolder}/../api/connected_cloud/provisioning.yaml",
+        "${workspaceFolder}/components/ConnectedCloudClient/generated/src/generated",
+        "tps",
+        "--verbose"
+      ],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/../python"
+      }
+    },
+    {
+        "name": "OpAndSite Server",
+        "type": "lldb",
+        "request": "launch",
+        "program": "${workspaceFolder}/../built/linux/debug/Duplo",
+        "cwd": "${workspaceFolder}/../",
+        "preRunCommands": [
+          "process handle -p true -s false SIGURG",
+          "breakpoint name configure --disable cpp_exception"
+        ],
+        "args": [
+          "-datadir=${userHome}/OpAndSite",
+          "-plugindir=./built/linux/debug/plugins",
+          "-pluginmanifestdir=./built/linux/debug/plugins",
+          "-server=localhost",
+          "-web-server-port=8080",
+          "-8BC9377056D0",
+          "-enable-dds",
+          "-componentsdir=${workspaceFolder}/../built/components",
+          "-runspec=${workspaceFolder}/../cpp/components/opandsiteconfig.json",
+          "-op-and-site"
+        ],
+        "sourceMap": {
+          "/tmp/": "${workspaceFolder}/../"
+        },
+        "preLaunchTask": "Bootstrap OpAndSite"
+      }
+  ]
+}

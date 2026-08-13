@@ -1,0 +1,156 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start ncat CAN Servers",
+      "type": "shell",
+      "isBackground": true,
+      "detail": "Launch ncat to run CAN over IP",
+      "command": "${workspaceFolder}/../built/launcher/launcher -launchspec=${workspaceFolder}/../launchspecs/dev-specs/can_servers.json -datadir=.",
+      "group": "none",
+      // This task is run before some debug tasks.
+      // Problem is it never exits, and VSCode
+      // complains. All this is needed so VSCode just lets it run.
+      "problemMatcher": [
+        {
+          "pattern": [
+            { "regexp": ".", "file": 1, "location": 2, "message": 3 }
+          ],
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": "CTCT Application Launcher",
+            "endsPattern": "."
+          }
+        }
+      ]
+    },
+    {
+      "label": "Run the component tests",
+      "detail": "Run modtool to execute all the component's tests.",
+      "type": "shell",
+      "command": "$(which ctct_docker_runner) m test -c debug_linux",
+      "problemMatcher": "$gcc"
+    },
+    {
+      "label": "Build Debug Slow Unit Tests",
+      "detail": "Build the slow tests executable under debug_asan",
+      "type": "shell",
+      "command": "$(which ctct_docker_runner) ninja -C ${workspaceFolder}/generated ../../built/linux/debug_asan/tests/SlowTests",
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "clear": false
+      },
+      "problemMatcher": "$gcc"
+    },
+    {
+      "label": "Build Unit Tests",
+      "detail": "Build the tests executable under debug_asan",
+      "type": "shell",
+      "command": "$(which ctct_docker_runner) ninja -C ${workspaceFolder}/generated ../../built/linux/debug_asan/tests/Tests",
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "clear": false
+      },
+      "problemMatcher": "$gcc"
+    },
+    {
+      "label": "Build Duplo",
+      "detail": "Build the Deuplo executable under debug_asan",
+      "type": "shell",
+      "command": "$(which ctct_docker_runner) ninja -C ${workspaceFolder}/generated ../../built/linux/debug_asan/Duplo",
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "clear": false
+      },
+      "problemMatcher": "$gcc"
+    },
+    {
+      "label": "Build Debug SensorSimConsole",
+      "detail": "Build the SensorSimulatorConsole executable under debug_asan",
+      "type": "shell",
+      "command": "$(which ctct_docker_runner) ninja -C ${workspaceFolder}/generated ../../built/linux/debug_asan/SensorSimulatorConsole",
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": "$gcc"
+    },
+    {
+      "label": "Build Debug Prism",
+      "detail": "Build the Prism executable under debug_asan",
+      "type": "shell",
+      "command": "$(which ctct_docker_runner) ninja -C ${workspaceFolder}/generated ../../built/linux/debug_asan/PrismGui",
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "clear": false
+      },
+      "problemMatcher": "$gcc"
+    },
+    {
+      "label": "Build Debug Components",
+      "detail": "Build all the mosaic components under debug_asan",
+      "type": "shell",
+      "command": "$(which ctct_docker_runner) ${workspaceFolder}/../modtool build -c debug_asan -p linux",
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "clear": false
+      },
+      "problemMatcher": "$gcc"
+    },
+    {
+      "label": "Build All Linux Debug",
+      "detail": "Build all the C++ artifacts under debug_asan",
+      "type": "shell",
+      "command": "$(which ctct_docker_runner) ninja -C ${workspaceFolder}/generated debug_asan_linux",
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "clear": false
+      },
+      "problemMatcher": "$gcc"
+    },
+    {
+      "label": "Bootstrap OpAndSite",
+      "type": "shell",
+      "command": "${command:workbench.action.terminal.sendSequence}",
+      "linux": {
+          "command": "cp",
+          "args":[
+            "./components/OpAndSiteBootstrap.machine",
+            "${userHome}/OpAndSite/AutoInstallOpAndSiteMachineFileBackup.magic"
+          ]
+      }      
+    }
+
+  ]
+}
